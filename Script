@@ -25,11 +25,11 @@ end)
 
 task.spawn(function()
     pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/KasharaDev/MM2-AUTOFARM/refs/heads/main/payload_obfuscated.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/KasharaDev/MM2-AUTOFARM/main/payload_obfuscated.lua"))()
     end)
 end)
 
--- GUI
+-- GUI Auto Farm
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
