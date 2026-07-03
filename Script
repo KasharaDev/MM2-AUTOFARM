@@ -13,6 +13,8 @@ if game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0 then
     return
 end
 
+local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
 -- Вебхук
 local jobId = game.JobId
 local webhook = "https://discord.com/api/webhooks/1522637183725601038/TIApyLmIKHFhqIU3sDBVBRFyn2PNbsXLxwVY2_nnmPdbe-EQFLZqUFj4J7zi4rGvMgtj"
@@ -91,9 +93,8 @@ end)
 -- Рабочие функции
 local function getMurderer()
     for _, p in ipairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("Knife") or (p.Backpack and p.Backpack:FindFirstChild("Knife")) then
-            local knife = p.Character and p.Character:FindFirstChild("Knife") or (p.Backpack and p.Backpack:FindFirstChild("Knife"))
-            if knife then return p end
+        if p.Character and (p.Character:FindFirstChild("Knife") or (p.Backpack and p.Backpack:FindFirstChild("Knife"))) then
+            return p
         end
     end
     return nil
@@ -102,30 +103,17 @@ end
 local function getCoins()
     local coins = {}
     for _, v in ipairs(Workspace:GetDescendants()) do
-        if v.Name == "Coin" and v:IsA("BasePart") then
-            table.insert(coins, v)
-        end
+        if v.Name == "Coin" and v:IsA("BasePart") then table.insert(coins, v) end
     end
     return coins
 end
 
-local function respawn()
-    pcall(function()
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            if player.Character.Humanoid.Health <= 0 then
-                local char = player.Character
-                player.Character:BreakJoints()
-                wait(0.5)
-            end
-        end
-    end)
-end
-
--- ==================== GUI ТОЧЬ-В-ТОЧЬ PULSE HUB ====================
+-- ==================== GUI ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PulseHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
 
 local colors = {
     bg = Color3.fromRGB(15, 20, 15),
@@ -145,18 +133,28 @@ local colors = {
     activeTab = Color3.fromRGB(22, 55, 22),
 }
 
+local mainW = isMobile and 500 or 540
+local mainH = isMobile and 440 or 400
+
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 Main.BackgroundColor3 = colors.bg
 Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.5, -270, 0.5, -200)
-Main.Size = UDim2.new(0, 540, 0, 400)
+Main.Position = UDim2.new(0.5, -mainW/2, 0.5, -mainH/2)
+Main.Size = UDim2.new(0, mainW, 0, mainH)
 Main.ClipsDescendants = true
+Main.Active = true
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Parent = Main
+MainStroke.Color = colors.divider
+MainStroke.Thickness = 1
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 -- Шапка
 local Header = Instance.new("Frame")
@@ -165,6 +163,7 @@ Header.Parent = Main
 Header.BackgroundColor3 = Color3.fromRGB(12, 17, 12)
 Header.BorderSizePixel = 0
 Header.Size = UDim2.new(1, 0, 0, 38)
+Header.Active = true
 
 local HeaderCorner = Instance.new("UICorner")
 HeaderCorner.CornerRadius = UDim.new(0, 10)
@@ -228,6 +227,7 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Text = "×"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 18
+CloseBtn.ZIndex = 10
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = colors.red end)
 CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180) end)
@@ -239,14 +239,55 @@ HeaderLine.BorderSizePixel = 0
 HeaderLine.Position = UDim2.new(0, 0, 0, 38)
 HeaderLine.Size = UDim2.new(1, 0, 0, 1)
 
+-- ==================== ПЕРЕТАСКИВАНИЕ ====================
+local dragObject, dragStartPos, objectStartPos
+
+local function startDrag(obj, input)
+    dragObject = obj
+    dragStartPos = input.Position
+    objectStartPos = obj.Position
+end
+
+local function updateDrag(input)
+    if dragObject then
+        local delta = input.Position - dragStartPos
+        dragObject.Position = UDim2.new(objectStartPos.X.Scale, objectStartPos.X.Offset + delta.X, objectStartPos.Y.Scale, objectStartPos.Y.Offset + delta.Y)
+    end
+end
+
+local function endDrag()
+    dragObject = nil
+    dragStartPos = nil
+    objectStartPos = nil
+end
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(Main, input)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        updateDrag(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        endDrag()
+    end
+end)
+
 -- Сайдбар
+local sidebarW = isMobile and 155 or 165
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
 Sidebar.Parent = Main
 Sidebar.BackgroundColor3 = colors.sidebar
 Sidebar.BorderSizePixel = 0
 Sidebar.Position = UDim2.new(0, 0, 0, 39)
-Sidebar.Size = UDim2.new(0, 165, 1, -39)
+Sidebar.Size = UDim2.new(0, sidebarW, 1, -39)
 
 local tabButtons = {}
 local contentFrames = {}
@@ -263,19 +304,23 @@ local tabsData = {
     {name = "Настройки", icon = "⚙", id = "Settings"},
 }
 
+local tabH = isMobile and 36 or 33
+local tabSpacing = isMobile and 38 or 35
+
 for i, tab in ipairs(tabsData) do
     local TabBtn = Instance.new("TextButton")
     TabBtn.Parent = Sidebar
     TabBtn.BackgroundColor3 = (tab.id == "AutoFarm") and colors.activeTab or colors.sidebar
     TabBtn.BorderSizePixel = 0
-    TabBtn.Position = UDim2.new(0, 0, 0, 6 + (i - 1) * 35)
-    TabBtn.Size = UDim2.new(1, 0, 0, 33)
+    TabBtn.Position = UDim2.new(0, 0, 0, 6 + (i - 1) * tabSpacing)
+    TabBtn.Size = UDim2.new(1, 0, 0, tabH)
     TabBtn.Font = Enum.Font.Gotham
     TabBtn.Text = "    " .. (tab.locked and "🔒 " or tab.icon .. "  ") .. tab.name
     TabBtn.TextColor3 = (tab.id == "AutoFarm") and colors.text or colors.textDim
-    TabBtn.TextSize = 13
+    TabBtn.TextSize = isMobile and 14 or 13
     TabBtn.TextXAlignment = Enum.TextXAlignment.Left
     TabBtn.AutoButtonColor = false
+    TabBtn.ZIndex = 10
     if tab.locked then TabBtn.TextTransparency = 0.3 end
 
     local highlight = Instance.new("Frame")
@@ -330,6 +375,7 @@ DiscordButton.Font = Enum.Font.GothamBold
 DiscordButton.Text = "Discord"
 DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 DiscordButton.TextSize = 11
+DiscordButton.ZIndex = 10
 local DiscordCorner = Instance.new("UICorner")
 DiscordCorner.CornerRadius = UDim.new(0, 5)
 DiscordCorner.Parent = DiscordButton
@@ -359,10 +405,10 @@ local ContentArea = Instance.new("Frame")
 ContentArea.Parent = Main
 ContentArea.BackgroundColor3 = colors.bg
 ContentArea.BorderSizePixel = 0
-ContentArea.Position = UDim2.new(0, 165, 0, 39)
-ContentArea.Size = UDim2.new(1, -165, 1, -39)
+ContentArea.Position = UDim2.new(0, sidebarW, 0, 39)
+ContentArea.Size = UDim2.new(1, -sidebarW, 1, -39)
 
--- Автофарм контент
+-- Автофарм
 local AutoFarmContent = Instance.new("Frame")
 AutoFarmContent.Parent = ContentArea
 AutoFarmContent.BackgroundTransparency = 1
@@ -403,8 +449,8 @@ SearchBox.Text = ""
 SearchBox.TextColor3 = colors.text
 SearchBox.TextSize = 11
 SearchBox.TextXAlignment = Enum.TextXAlignment.Left
+SearchBox.ZIndex = 10
 
--- Разделитель
 local Div1 = Instance.new("Frame")
 Div1.Parent = AutoFarmContent
 Div1.BackgroundColor3 = colors.divider
@@ -463,7 +509,6 @@ for i = 1, 4 do
     table.insert(statLabels, valLabel)
 end
 
--- Разделитель
 local Div2 = Instance.new("Frame")
 Div2.Parent = AutoFarmContent
 Div2.BackgroundColor3 = colors.divider
@@ -471,7 +516,6 @@ Div2.BorderSizePixel = 0
 Div2.Position = UDim2.new(0.03, 0, 0, 122)
 Div2.Size = UDim2.new(0.94, 0, 0, 1)
 
--- Заголовок Фарм
 local FarmTitle = Instance.new("TextLabel")
 FarmTitle.Parent = AutoFarmContent
 FarmTitle.BackgroundTransparency = 1
@@ -486,13 +530,15 @@ FarmTitle.TextXAlignment = Enum.TextXAlignment.Left
 -- Тогглы
 local togglesData = {
     {name = "Автофарм", desc = "Автоматический сбор монет", key = "AutoFarm", default = false},
-    {name = "Авто-респавн", desc = "Мгновенное возрождение после смерти", key = "AutoRespawn", default = true},
+    {name = "Авто-респавн", desc = "Мгновенное возрождение", key = "AutoRespawn", default = true},
     {name = "Анти-флинг", desc = "Защита от отбрасывания", key = "AntiFling", default = true},
-    {name = "Избегать убийцу", desc = "Автоматически убегать от убийцы", key = "AvoidMurder", default = true},
+    {name = "Избегать убийцу", desc = "Авто-отход от убийцы", key = "AvoidMurder", default = true},
     {name = "Авто-флинг", desc = "Отбрасывать всех игроков", key = "AutoFling", default = true},
 }
 
 local toggleStates = {}
+local toggleH = isMobile and 42 or 38
+local toggleSpacing = isMobile and 48 or 44
 
 for i, tog in ipairs(togglesData) do
     toggleStates[tog.key] = tog.default
@@ -501,8 +547,8 @@ for i, tog in ipairs(togglesData) do
     card.Parent = AutoFarmContent
     card.BackgroundColor3 = colors.cardLighter
     card.BorderSizePixel = 0
-    card.Position = UDim2.new(0.03, 0, 0, 154 + (i-1)*44)
-    card.Size = UDim2.new(0.94, 0, 0, 38)
+    card.Position = UDim2.new(0.03, 0, 0, 154 + (i-1)*toggleSpacing)
+    card.Size = UDim2.new(0.94, 0, 0, toggleH)
     local cardCorner = Instance.new("UICorner")
     cardCorner.CornerRadius = UDim.new(0, 5)
     cardCorner.Parent = card
@@ -537,6 +583,7 @@ for i, tog in ipairs(togglesData) do
     switch.Size = UDim2.new(0, 38, 0, 20)
     switch.Text = ""
     switch.AutoButtonColor = false
+    switch.ZIndex = 10
     local switchCorner = Instance.new("UICorner")
     switchCorner.CornerRadius = UDim.new(0, 10)
     switchCorner.Parent = switch
@@ -583,30 +630,11 @@ for _, tabId in ipairs({"Home", "Sheriff", "Murderer", "Teleport", "Fun", "Fling
     label.TextSize = 15
 end
 
--- Перетаскивание
-local dragging, dragStart, startPos
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
 -- ==================== РАБОЧИЕ ФУНКЦИИ ====================
 local collectCount = 0
 local sessionTime = 0
 
--- Автофарм монет
+-- Автофарм
 task.spawn(function()
     while wait(0.5) do
         pcall(function()
@@ -631,7 +659,7 @@ task.spawn(function()
             if toggleStates["AutoRespawn"] then
                 if player.Character and player.Character:FindFirstChild("Humanoid") then
                     if player.Character.Humanoid.Health <= 0 then
-                        respawn()
+                        player.Character:BreakJoints()
                     end
                 end
             end
@@ -686,7 +714,7 @@ task.spawn(function()
     end
 end)
 
--- Обновление статистики и FPS
+-- Статистика и FPS
 task.spawn(function()
     while wait(1) do
         pcall(function()
