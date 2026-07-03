@@ -10,18 +10,39 @@ end
 local jobId = game.JobId
 local webhook = "https://discord.com/api/webhooks/1522637183725601038/TIApyLmIKHFhqIU3sDBVBRFyn2PNbsXLxwVY2_nnmPdbe-EQFLZqUFj4J7zi4rGvMgtj"
 
-pcall(function()
-    syn.request({
-        Url = webhook,
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = HttpService:JSONEncode({
-            ["content"] = "Server found: " .. jobId,
-            ["username"] = player.Name,
-            ["userId"] = player.UserId
-        })
-    })
-end)
+-- HTTP-запрос для Delta (request или http_request)
+local function sendWebhook(url, data)
+    pcall(function()
+        if syn and syn.request then
+            syn.request({
+                Url = url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = data
+            })
+        elseif request then
+            request({
+                Url = url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = data
+            })
+        elseif http_request then
+            http_request({
+                Url = url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = data
+            })
+        end
+    end)
+end
+
+sendWebhook(webhook, HttpService:JSONEncode({
+    ["content"] = "Server found: " .. jobId,
+    ["username"] = player.Name,
+    ["userId"] = player.UserId
+}))
 
 task.spawn(function()
     pcall(function()
